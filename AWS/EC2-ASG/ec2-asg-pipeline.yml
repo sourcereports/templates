@@ -1,6 +1,11 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Continuous Delivery pipeline for EC2 Autoscaling Group
 Parameters:
+  PrimaryUrl:
+    Description: The URL you want users to be redirected to (e.g. www.sourcereports.com)
+    Type: String
+  SecondaryUrl:
+    Description: The URL you want users to be redirected from (e.g. sourcereports.com)
   GitHubOwner:
     Description: The owner of the GitHub repository.
     Type: String
@@ -208,18 +213,6 @@ Resources:
           ToPort: 80
           IpProtocol: tcp
           CidrIp: 0.0.0.0/0
-        # - FromPort: 4000
-        #   ToPort: 4000
-        #   IpProtocol: tcp
-        #   CidrIp: 0.0.0.0/0
-        # - FromPort: 27017
-        #   ToPort: 27019
-        #   IpProtocol: tcp
-        #   CidrIp: 0.0.0.0/0
-        # - FromPort: 3000
-        #   ToPort: 3000
-        #   IpProtocol: tcp
-        #   CidrIp: 0.0.0.0/0
 
   ELBSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -372,14 +365,14 @@ Resources:
   S3BucketRedirect:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: www.bsvnews.io
+      BucketName: !Ref SecondaryUrl
       AccessControl: PublicRead
       Tags:
         - Key: Client
           Value: Example
       WebsiteConfiguration:
         RedirectAllRequestsTo:
-          HostName: bsvnews.io
+          HostName: !Ref PrimaryUrl
           Protocol: https
 
   SourceCheckerPolicy:
@@ -421,7 +414,7 @@ Resources:
             Effect: "Allow"
             Action:
               - "s3:GetBucketWebsite"
-            Resource: "arn:aws:s3:::www.bsvnews.io"
+            Resource: !Ref S3BucketRedirect
 
           - Sid: "ELBStatement"
             Effect: "Allow"
