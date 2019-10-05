@@ -283,8 +283,6 @@ Resources:
       MaxSize: "4"
       TargetGroupARNs:
       - !Ref TargetGroup
-      # LoadBalancerNames:
-      #   - Ref: "myLoadBalancer"
       MetricsCollection:
         -
           Granularity: "1Minute"
