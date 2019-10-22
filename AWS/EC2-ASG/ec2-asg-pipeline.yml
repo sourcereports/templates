@@ -1,11 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Continuous Delivery pipeline for EC2 Autoscaling Group
 Parameters:
-  PrimaryUrl:
-    Description: The URL you want users to be redirected to (e.g. www.sourcereports.com)
-    Type: String
-  SecondaryUrl:
-    Description: The URL you want users to be redirected from (e.g. sourcereports.com)
   GitHubOwner:
     Description: The owner of the GitHub repository.
     Type: String
@@ -14,6 +9,12 @@ Parameters:
     Type: String
   GitHubOAuthToken:
     Description: The OAuthToken of the GitHub user.
+    Type: String
+  PrimaryUrl:
+    Description: The URL you would like customers to be redirected to (eg. bsvnews.io)
+    Type: String
+  SecondaryUrl:
+    Description: The URL you would like customers to be redirected away from (eg. www.bsvnews.io)
     Type: String
   VPC:
     Description: The VPC Id to launch the EC2 instance in.
@@ -191,8 +192,10 @@ Resources:
       Path: /
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole'
+
   Application:
     Type: 'AWS::CodeDeploy::Application'
+
   DeploymentGroup:
     Type: 'AWS::CodeDeploy::DeploymentGroup'
     Properties:
@@ -203,6 +206,7 @@ Resources:
           Value: !Ref 'AWS::StackName'
       ServiceRoleArn: !Sub '${CodeDeployIAMRole.Arn}'
       DeploymentConfigName: CodeDeployDefault.AllAtOnce
+
   SecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -228,6 +232,7 @@ Resources:
           ToPort: 443
           IpProtocol: tcp
           CidrIp: 0.0.0.0/0
+
   EC2InstanceProfile:
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
@@ -283,6 +288,8 @@ Resources:
       MaxSize: "4"
       TargetGroupARNs:
       - !Ref TargetGroup
+      # LoadBalancerNames:
+      #   - Ref: "myLoadBalancer"
       MetricsCollection:
         -
           Granularity: "1Minute"
@@ -320,7 +327,7 @@ Resources:
     Properties:
       DefaultActions:
         - RedirectConfig:
-            Host: "#{host}"
+            Host: !Ref PrimaryUrl
             Path: "/#{path}"
             Port: 443
             Protocol: "HTTPS"
@@ -330,6 +337,7 @@ Resources:
       LoadBalancerArn: !Ref 'LoadBalancer'
       Port: 80
       Protocol: HTTP
+
 
   HTTPSlistener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -344,6 +352,24 @@ Resources:
         - CertificateArn: !Ref CertificateArn
       SslPolicy: ELBSecurityPolicy-TLS-1-2-2017-01
 
+  SecondaryUrlFwdListener:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: redirect
+          RedirectConfig:
+            Host: !Ref PrimaryUrl
+            Path: "/#{path}"
+            Port: 443
+            Protocol: "HTTPS"
+            Query: "#{query}"
+            StatusCode: HTTP_301
+      Conditions:
+        - Field: host-header
+          Values: [!Ref SecondaryUrl]
+      ListenerArn: !Ref HTTPSlistener
+      Priority: 2
+
   CheckerRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -353,25 +379,12 @@ Resources:
           - Effect: "Allow"
             Principal:
               AWS:
-                - "arn:aws:iam::713269593054:role/lambda_basic_execution"
+                - "arn:aws:iam::713269593054:role/sr-checker-role"
               Service:
                 - "lambda.amazonaws.com"
             Action:
               - "sts:AssumeRole"
-      Path: "/"
-
-  S3BucketRedirect:
-    Type: "AWS::S3::Bucket"
-    Properties:
-      BucketName: !Ref SecondaryUrl
-      AccessControl: PublicRead
-      Tags:
-        - Key: Client
-          Value: Example
-      WebsiteConfiguration:
-        RedirectAllRequestsTo:
-          HostName: !Ref PrimaryUrl
-          Protocol: https
+      Path: /
 
   SourceCheckerPolicy:
     Type: "AWS::IAM::Policy"
@@ -412,7 +425,7 @@ Resources:
             Effect: "Allow"
             Action:
               - "s3:GetBucketWebsite"
-            Resource: !Ref S3BucketRedirect
+            Resource: "arn:aws:s3:::www.bsvnews.io"
 
           - Sid: "ELBStatement"
             Effect: "Allow"

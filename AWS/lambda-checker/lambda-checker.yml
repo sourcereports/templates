@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  LambdaCheckerFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Handler: "lambda_function.lambda_handler"
+      Role:
+        Fn::GetAtt:
+          - "LambdaExecutionRole"
+          - "Arn"
+      Code:
+        S3Bucket: "www.sourcereports.com"
+        S3Key: "files/sr_gateway_check.zip"
+      Runtime: "python3.7"
+      Timeout: 5
+      Environment:
+        Variables:
+         DOMAIN: https://rr459muydl.execute-api.us-east-1.amazonaws.com/prod/gateway
+         HTTPMETHOD: POST
+         ROLEARN: arn:aws:iam::713269593054:role/sr-public-role
+
+  LambdaExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+
+  SourceCheckerPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: "LambdaExecutionPolicy"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "CloudwatchPolicy"
+            Effect: "Allow"
+            Action:
+              - "logs:CreateLogGroup"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Resource: "*"
+          - Sid: "AssumeRolePolicy"
+            Effect: "Allow"
+            Action:
+              - 'sts:AssumeRole'
+            Resource: "*"
+
+      Roles:
+        - Ref: "LambdaExecutionRole"
