@@ -2,13 +2,13 @@
 This function will return the source files for the lambda of any ApiGateway endpoint that has been publically exposed.
 
 ## How to use
-Step 1. Inspect the element of the page with the API endpoint
+1.  Inspect the element of the page with the API endpoint
 
-Step 2. Launch the template on your AWS account
+2.  Launch the template on your AWS account
 
-Step 3. Replace the environment variable values with the endpoint URL, the http method (eg. POST, PUT etc.), and the IAM Role Arn provided by the developer 
+3.  Replace the environment variable values with the endpoint URL, the http method (eg. POST, PUT etc.), and the IAM Role Arn provided by the developer 
 
-Step 4. Test the function, and it will return the s3 url with the lambda zip file!
+4.  Test the function, and it will return the s3 url with the lambda zip file!
 
 P.S. This code can work for any publically exposed lambda, as long as the developer gives you the IAM Role Arn to read their resources! If you'd like help implementing this on your own account, email me: andy@sourcereports.com
 
