@@ -1,5 +1,5 @@
 ## About
-This function will return the source files for the lambda function of any ApiGateway endpoint which has been publically exposed.
+This function will return the source files for the lambda function of any ApiGateway endpoint which has been publically exposed. A demo is deployed here: https://www.sourcereports.com/dashboard/apicheck.html
 
 ## How to use
 1.  Inspect the element of the page with the API endpoint
