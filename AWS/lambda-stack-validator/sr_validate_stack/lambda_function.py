@@ -31,20 +31,11 @@ class Stack:
 
 
 def lambda_handler(event, context):
-    id= ''
-    try:
-        myvar = json.loads(event['body'])
-        id = myvar['uid']
-    except:
-        print('not apigateway')
 
-    try:
-        id = event['Records'][0]['body']
-    except:
-        print('not sqs')
+    myvar = json.loads(event['body'])
+    url = myvar['url']
 
-    print(event)
-
+    id = getId(url)
     response = getRecord(id)
     my_stack = Stack(response)
     getLiveNS(my_stack)
@@ -88,6 +79,13 @@ def lambda_handler(event, context):
         },
         'body': json.dumps({"msg":my_stack.msg, "repo":my_stack.repo, "uid":my_stack.id})
     }
+def getId(url):
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table('sourceshare')
+    response = table.query(
+      KeyConditionExpression=Key('id').eq(id)
+    )
+    return response
 
 def getRecord(id):
     dynamodb = boto3.resource('dynamodb')

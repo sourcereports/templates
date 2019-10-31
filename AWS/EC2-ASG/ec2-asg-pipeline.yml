@@ -175,7 +175,7 @@ Resources:
               InputArtifacts:
                 - Name: asgWebsite
               Configuration:
-                ApplicationName: !Ref Application
+                ApplicationName: !Ref CodeDeployApplication
                 DeploymentGroupName: !Ref DeploymentGroup
   CodeDeployIAMRole:
     Type: 'AWS::IAM::Role'
@@ -193,17 +193,14 @@ Resources:
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole'
 
-  Application:
+  CodeDeployApplication:
     Type: 'AWS::CodeDeploy::Application'
 
   DeploymentGroup:
     Type: 'AWS::CodeDeploy::DeploymentGroup'
     Properties:
-      ApplicationName: !Ref Application
-      Ec2TagFilters:
-        - Key: DeploymentGroup
-          Type: KEY_AND_VALUE
-          Value: !Ref 'AWS::StackName'
+      ApplicationName: !Ref CodeDeployApplication
+      AutoScalingGroups: [!Ref myASGroup]
       ServiceRoleArn: !Sub '${CodeDeployIAMRole.Arn}'
       DeploymentConfigName: CodeDeployDefault.AllAtOnce
 
@@ -393,14 +390,23 @@ Resources:
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
-          - Sid: "CodedeployStatement"
+          - Sid: "CodeDeployStatement"
             Effect: "Allow"
             Action:
               - "codedeploy:BatchGetDeploymentInstances"
+              - "codedeploy:BatchGetDeploymentGroups"
               - "codedeploy:GetDeployment"
               - "codedeploy:GetDeploymentGroup"
               - "codedeploy:ListDeploymentInstances"
-            Resource: !Sub "arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:${Application}/*"
+              - "codedeploy:ListDeploymentTargets"
+            Resource: !Sub "arn:aws:codedeploy:*:${AWS::AccountId}:deploymentgroup:*"
+
+          - Sid: "CodeDeployAppsStatement"
+            Effect: "Allow"
+            Action:
+              - "codedeploy:ListApplications"
+              - "codedeploy:ListDeploymentGroups"
+            Resource: !Sub "arn:aws:codedeploy:*:${AWS::AccountId}:application:*"
 
           - Sid: "CodePipelineStatement"
             Effect: "Allow"
@@ -408,6 +414,7 @@ Resources:
               - "codepipeline:GetPipeline"
               - "codepipeline:GetPipelineExecution"
               - "codepipeline:GetPipelineState"
+              - "codepipeline:ListActionExecutions"
             Resource: !Sub "arn:aws:codepipeline:${AWS::Region}:${AWS::AccountId}:${CodePipeline}"
 
           - Sid: "Route53Statement"
@@ -420,12 +427,6 @@ Resources:
               - "route53:GetHostedZone"
               - "route53:ListResourceRecordSets"
             Resource: !Sub "arn:aws:route53:::hostedzone/${HostedZoneId}"
-
-          - Sid: "S3Statement"
-            Effect: "Allow"
-            Action:
-              - "s3:GetBucketWebsite"
-            Resource: "arn:aws:s3:::www.bsvnews.io"
 
           - Sid: "ELBStatement"
             Effect: "Allow"
